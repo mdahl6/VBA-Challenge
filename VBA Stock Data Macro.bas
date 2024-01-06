@@ -1,0 +1,244 @@
+Attribute VB_Name = "Module1"
+Sub StockTicker()
+
+'Loop through all worksheets
+'Help on looping through worksheets from https://excelchamps.com/vba/loop-sheets/
+For Each ws In Worksheets
+
+    'Create variables for columns based on what's in them to keep future column assignments accurate
+    Tickercol = 1
+    opencol = 3
+    highcol = 4
+    lowcol = 5
+    closecol = 6
+    volcol = 7
+    
+    NewtickCol = 9
+    YChangecol = 10
+    Percchangecol = 11
+    TotVolCol = 12
+    
+    'Create variables to be used later
+    Dim Ticker As String
+    Dim NextTick As String
+    Dim MaxTick As String
+    Dim MinTick As String
+    Dim MaxVolTick As String
+    Dim PercentChange As Double
+    Dim currcell As Single
+    Dim nextcell As Single
+    
+    'Label column headers needed
+    ws.Range("I1").Value = "Ticker"
+    ws.Range("J1").Value = "Yearly Change"
+    ws.Range("K1").Value = "Percent Change"
+    ws.Range("L1").Value = "Total Stock Volume"
+    ws.Range("N2").Value = "Greatest % Increase"
+    ws.Range("N3").Value = "Greatest % Decrease"
+    ws.Range("N4").Value = "Greatest Total Volume"
+    ws.Range("O1").Value = "Ticker"
+    ws.Range("P1").Value = "Number"
+    
+    'Count number of filled rows
+    'row counting code from stackoverflow (https://stackoverflow.com/questions/38710729/get-number-of-rows-filled-in-particular-column-vba)
+    
+    TickerRows = Rows(Rows.Count).End(xlUp).Row
+    
+    'Create variable for counting number of Ticker symbols to write to new rows eventually
+    TickCount = 1
+    
+    'Create variable to track row that started current Ticker series
+    StartRow = 2
+    
+    'Create variable to track current sum of stock volume
+    Dim SumVol As Double
+    SumVol = 0
+        
+    'Read data from existing rows
+    For Row = 2 To TickerRows
+        
+        'read current row open, close and volume
+        Thisopen = ws.Cells(Row, opencol).Value
+        Thisclose = ws.Cells(Row, closecol).Value
+        Thisvol = ws.Cells(Row, volcol).Value
+        
+        'read current and next row's ticker symbols
+        
+        Ticker = ws.Cells(Row, Tickercol).Value
+        NextTick = ws.Cells(Row + 1, Tickercol).Value
+        
+        
+        'Add current stock volume to sum.  Sum resets each time the ticker symbol changes
+        SumVol = SumVol + Thisvol
+         
+         
+        'compare to see if ticker symbol has changed
+        'If it changed, add current ticker symbol (should be the last of the same ones)
+        'Increase ticker row count so next time the correct cell will write
+        If Ticker <> NextTick Then
+            TickCount = TickCount + 1
+            ws.Cells(TickCount, NewtickCol).Value = Ticker
+            
+            'calculate yearly change as open value of first entry in ticker series minus close value of last entry in ticker series
+            YearChange = ws.Cells(Row, closecol).Value - ws.Cells(StartRow, opencol).Value
+            ws.Cells(TickCount, YChangecol).Value = YearChange
+            
+            'Apply conditional formatting to the yearly change calculation
+            'Green if 0 or above, red if below zero
+            If ws.Cells(TickCount, YChangecol).Value >= 0 Then
+                ws.Cells(TickCount, YChangecol).Interior.ColorIndex = 4
+            ElseIf ws.Cells(TickCount, YChangecol).Value < 0 Then
+                ws.Cells(TickCount, YChangecol).Interior.ColorIndex = 3
+            End If
+            
+            'Calculate percent change in stock over year
+            'Assign temporary values for easier math
+            V2 = ws.Cells(Row, closecol).Value
+            V1 = ws.Cells(StartRow, opencol).Value
+        
+            'Calculate percent change
+            PercentChange = (V2 - V1) / Abs(V1)
+        
+            'Write value into new cell
+            ws.Cells(TickCount, Percchangecol).Value = PercentChange
+        
+            'Format cell as percentage
+            ws.Cells(TickCount, Percchangecol).NumberFormat = "0.00%"
+            
+            
+            'Copy and past conditional formatting from yearly change to percent change
+            'Green if 0 or above, red if below zero
+            If ws.Cells(TickCount, Percchangecol).Value >= 0 Then
+                ws.Cells(TickCount, Percchangecol).Interior.ColorIndex = 4
+            ElseIf ws.Cells(TickCount, Percchangecol).Value < 0 Then
+                ws.Cells(TickCount, Percchangecol).Interior.ColorIndex = 3
+            End If
+            
+            
+            'Print total volume to correct column
+            ws.Cells(TickCount, TotVolCol).Value = SumVol
+            
+            'Reset SumVol to 0 to begin next series
+            SumVol = 0
+        
+            'change StartRow to the row after this one, indicating that a new Ticker series is beginning
+            StartRow = Row + 1
+            
+            
+        End If
+         
+        
+    Next Row
+    
+    
+    'Find Stock with Greatest % Increase
+    'Use a loop to compare each number to the next
+    'Define variable MPRow: Max Percent Row
+    
+    MPRow = 2
+    
+    For IncRow = 2 To (TickCount - 1)
+                
+        currcell = ws.Cells(IncRow, Percchangecol).Value
+        nextcell = ws.Cells(IncRow + 1, Percchangecol).Value
+        Maxcell = ws.Cells(MPRow, Percchangecol).Value
+        
+        'Compare current cell to next cell
+        'Also compare the current cell to the current max value
+        'If current cell is larger than the next and the max, it is the new max
+        'If it is less than the next cell nothing happens and we move to the next row
+        'If it is greater than the next cell but less than the max we move to the next row and nothing happens
+        
+        If currcell > nextcell And currcell > Maxcell Then
+            
+            MPRow = IncRow
+            
+        End If
+        
+    Next IncRow
+    
+    'Store maximum value ticker and number
+    MaxTick = ws.Cells(MPRow, NewtickCol).Value
+    MaxVal = ws.Cells(MPRow, Percchangecol).Value
+    
+    
+    'Write maximum value ticker and number to correct location
+    ws.Range("O2").Value = MaxTick
+    ws.Range("P2").Value = MaxVal
+    ws.Range("P2").NumberFormat = "0.00%"
+    
+    
+    'Repeat the same procedure as greatest increase for greatest decrease
+    'Reverse signs and it should work opposite
+    'Define MLRow: Max Loss Row
+    MLRow = 2
+    
+    For DecRow = 2 To (TickCount - 1)
+                
+        currcell = ws.Cells(DecRow, Percchangecol).Value
+        nextcell = ws.Cells(DecRow + 1, Percchangecol).Value
+        Mincell = ws.Cells(MLRow, Percchangecol).Value
+        
+        'Compare current cell to next cell
+        'Also compare the current cell to the current min value
+        'If current cell is less than the next and the min, it is the new min
+        'If it is greater than the next cell nothing happens and we move to the next row
+        'If it is less than the next cell but greater than the min we move to the next row and nothing happens
+        
+        If currcell < nextcell And currcell < Mincell Then
+            
+            MLRow = DecRow
+            
+        End If
+        
+    Next DecRow
+    
+    'Store maximum value ticker and number
+    MinTick = ws.Cells(MLRow, NewtickCol).Value
+    MinVal = ws.Cells(MLRow, Percchangecol).Value
+    
+    
+    'Write maximum value ticker and number to correct location
+    ws.Range("O3").Value = MinTick
+    ws.Range("P3").Value = MinVal
+    ws.Range("P3").NumberFormat = "0.00%"
+    
+    'Repeat max finding for the volume totals (copy and paste and change variables)
+    'Use a loop to compare each number to the next
+    'Define variable MTRow: Max Total Row
+    
+    MTRow = 2
+    
+    For VolRow = 2 To (TickCount - 1)
+                
+        currcell = ws.Cells(VolRow, TotVolCol).Value
+        nextcell = ws.Cells(VolRow + 1, TotVolCol).Value
+        Maxcell = ws.Cells(MTRow, TotVolCol).Value
+        
+        'Compare current cell to next cell
+        'Also compare the current cell to the current max value
+        'If current cell is larger than the next and the max, it is the new max
+        'If it is less than the next cell nothing happens and we move to the next row
+        'If it is greater than the next cell but less than the max we move to the next row and nothing happens
+        
+        If currcell > nextcell And currcell > Maxcell Then
+            
+            MTRow = VolRow
+            
+        End If
+        
+    Next VolRow
+    
+    'Store maximum value ticker and number
+    MaxVolTick = ws.Cells(MTRow, NewtickCol).Value
+    MaxVol = ws.Cells(MTRow, TotVolCol).Value
+    
+    
+    'Write maximum value ticker and number to correct location
+    ws.Range("O4").Value = MaxVolTick
+    ws.Range("P4").Value = MaxVol
+
+Next
+
+End Sub
+
