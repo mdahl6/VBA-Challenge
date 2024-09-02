@@ -1,14 +1,14 @@
 # VBA-Challenge
-Module 2 Challenge
+Module 2
 
-The instructions for this project are:
+The instructions given for this project are:
 "Create a script that loops through all the stocks for each quarter and outputs the following information:
-*The ticker symbol
-*Quarterly change from the opening price at the beginning of a given quarter to the closing price at the end of that quarter.
-*The percentage change from the opening price at the beginning of a given quarter to the closing price at the end of that quarter.
-*The total stock volume of the stock.
-*Return the stock with the "Greatest % increase", "Greatest % decrease", and "Greatest total volume".
-*Make the appropriate adjustments to your VBA script to enable it to run on every worksheet (that is, every quarter) at once.
+* The ticker symbol
+* Quarterly change from the opening price at the beginning of a given quarter to the closing price at the end of that quarter.
+* The percentage change from the opening price at the beginning of a given quarter to the closing price at the end of that quarter.
+* The total stock volume of the stock.
+* Return the stock with the "Greatest % increase", "Greatest % decrease", and "Greatest total volume".
+* Make the appropriate adjustments to your VBA script to enable it to run on every worksheet (that is, every quarter) at once."
 
 Files included in repo:
   1. Excel Macro as basic type file
